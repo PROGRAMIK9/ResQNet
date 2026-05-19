@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -168,7 +169,10 @@ public class MainActivity extends AppCompatActivity {
 
     public List<Message> getMessagesForNode(String nodeId) {
         List<Message> history = chatHistory.get(nodeId);
-        return history != null ? new ArrayList<>(history) : new ArrayList<>();
+        if (history == null) return new ArrayList<>();
+        synchronized (history) {
+            return new ArrayList<>(history);
+        }
     }
 
     public void openIndividualChat(String nodeId) {
@@ -247,15 +251,18 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onConnectionResult(@NonNull String endpointId, @NonNull ConnectionResolution result) {
             if (result.getStatus().isSuccess()) {
+                Log.d(TAG, "Connected to " + endpointId);
                 connectedEndpoints.add(endpointId);
                 notifyFragmentsDataChanged();
             } else {
+                Log.w(TAG, "Connection failed: " + result.getStatus().getStatusMessage());
                 endpointIdToNodeMap.remove(endpointId);
             }
         }
 
         @Override
         public void onDisconnected(@NonNull String endpointId) {
+            Log.d(TAG, "Disconnected from " + endpointId);
             endpointIdToNodeMap.remove(endpointId);
             connectedEndpoints.remove(endpointId);
             notifyFragmentsDataChanged();
@@ -265,6 +272,7 @@ public class MainActivity extends AppCompatActivity {
     private final EndpointDiscoveryCallback endpointDiscoveryCallback = new EndpointDiscoveryCallback() {
         @Override
         public void onEndpointFound(@NonNull String endpointId, @NonNull DiscoveredEndpointInfo info) {
+            Log.d(TAG, "Endpoint found: " + info.getEndpointName());
             if (!discoveredNodeNames.contains(info.getEndpointName())) {
                 discoveredNodeNames.add(info.getEndpointName());
                 notifyFragmentsDataChanged();
@@ -280,7 +288,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
             if (payload.getType() == Payload.Type.BYTES) {
-                processReceivedData(new String(payload.asBytes(), StandardCharsets.UTF_8), endpointId);
+                byte[] bytes = payload.asBytes();
+                if (bytes != null) {
+                    processReceivedData(new String(bytes, StandardCharsets.UTF_8), endpointId);
+                }
             }
         }
         @Override
@@ -289,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void sendMeshMessage(String targetId, String message) {
         if (connectedEndpoints.isEmpty()) {
-            Log.w(TAG, "No connected endpoints to send message");
+            Toast.makeText(this, "No connected nodes!", Toast.LENGTH_SHORT).show();
             return;
         }
         try {
@@ -306,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
             broadcastToNeighbors(json.toString(), null);
             addMessageToHistory(targetId, new Message(myShortId, message, true));
         } catch (Exception e) {
-            Log.e(TAG, "Error creating/sending message", e);
+            Log.e(TAG, "Error sending message", e);
         }
     }
 
@@ -325,6 +336,7 @@ public class MainActivity extends AppCompatActivity {
                 String clearText = CryptoUtils.decrypt(body);
                 if (clearText != null) {
                     addMessageToHistory(sender, new Message(sender, clearText, false));
+                    runOnUiThread(() -> Toast.makeText(this, "New message from " + sender, Toast.LENGTH_SHORT).show());
                 }
             }
             broadcastToNeighbors(data, fromEndpointId);
@@ -341,12 +353,16 @@ public class MainActivity extends AppCompatActivity {
         }
         history.add(message);
         
-        final List<Message> finalHistory = new ArrayList<>(history);
+        final List<Message> historySnapshot;
+        synchronized (history) {
+            historySnapshot = new ArrayList<>(history);
+        }
+
         runOnUiThread(() -> {
-            if (ChatActivity.isActive() && nodeId.equals(ChatActivity.getCurrentNodeId())) {
+            if (ChatActivity.isActive() && nodeId.equalsIgnoreCase(ChatActivity.getCurrentNodeId())) {
                 ChatActivity activity = ChatActivity.getInstance();
                 if (activity != null) {
-                    activity.updateMessages(finalHistory);
+                    activity.updateMessages(historySnapshot);
                 }
             }
             
@@ -365,7 +381,8 @@ public class MainActivity extends AppCompatActivity {
         if (excludeId != null) targets.remove(excludeId);
         
         if (!targets.isEmpty()) {
-            Nearby.getConnectionsClient(this).sendPayload(targets, Payload.fromBytes(data.getBytes(StandardCharsets.UTF_8)));
+            Nearby.getConnectionsClient(this).sendPayload(targets, Payload.fromBytes(data.getBytes(StandardCharsets.UTF_8)))
+                .addOnFailureListener(e -> Log.e(TAG, "Payload broadcast failed", e));
         }
     }
 
