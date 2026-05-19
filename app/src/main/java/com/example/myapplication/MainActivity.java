@@ -41,12 +41,13 @@ import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MeshApp";
@@ -58,12 +59,12 @@ public class MainActivity extends AppCompatActivity {
     private String myShortId;
     private String currentStatus = "Idle";
     
-    private final Set<String> connectedEndpoints = new HashSet<>();
-    private final Map<String, String> endpointIdToNodeMap = new HashMap<>();
-    private final Set<String> seenMessageIds = new HashSet<>();
+    private final Set<String> connectedEndpoints = Collections.synchronizedSet(new HashSet<>());
+    private final Map<String, String> endpointIdToNodeMap = new ConcurrentHashMap<>();
+    private final Set<String> seenMessageIds = Collections.synchronizedSet(new HashSet<>());
     
-    private final Map<String, List<Message>> chatHistory = new HashMap<>();
-    private final List<String> discoveredNodeNames = new ArrayList<>();
+    private final Map<String, List<Message>> chatHistory = new ConcurrentHashMap<>();
+    private final List<String> discoveredNodeNames = Collections.synchronizedList(new ArrayList<>());
 
     private final String[] REQUIRED_PERMISSIONS;
 
@@ -156,15 +157,18 @@ public class MainActivity extends AppCompatActivity {
 
     public List<String> getConnectedNodeNames() {
         List<String> names = new ArrayList<>();
-        for (String id : connectedEndpoints) {
-            String name = endpointIdToNodeMap.get(id);
-            if (name != null && !names.contains(name)) names.add(name);
+        synchronized (connectedEndpoints) {
+            for (String id : connectedEndpoints) {
+                String name = endpointIdToNodeMap.get(id);
+                if (name != null && !names.contains(name)) names.add(name);
+            }
         }
         return names;
     }
 
     public List<Message> getMessagesForNode(String nodeId) {
-        return chatHistory.getOrDefault(nodeId, new ArrayList<>());
+        List<Message> history = chatHistory.get(nodeId);
+        return history != null ? new ArrayList<>(history) : new ArrayList<>();
     }
 
     public void openIndividualChat(String nodeId) {
@@ -218,7 +222,8 @@ public class MainActivity extends AppCompatActivity {
 
         DiscoveryOptions discOptions = new DiscoveryOptions.Builder().setStrategy(STRATEGY).build();
         Nearby.getConnectionsClient(this).startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discOptions)
-                .addOnSuccessListener(unused -> Log.d(TAG, "Discovery started"));
+                .addOnSuccessListener(unused -> Log.d(TAG, "Discovery started"))
+                .addOnFailureListener(e -> Log.e(TAG, "Discovery failed", e));
     }
 
     private void stopNearby() {
@@ -283,19 +288,26 @@ public class MainActivity extends AppCompatActivity {
     };
 
     public void sendMeshMessage(String targetId, String message) {
-        if (connectedEndpoints.isEmpty()) return;
+        if (connectedEndpoints.isEmpty()) {
+            Log.w(TAG, "No connected endpoints to send message");
+            return;
+        }
         try {
             String msgId = UUID.randomUUID().toString();
             seenMessageIds.add(msgId);
+            
             JSONObject json = new JSONObject();
             json.put("msgId", msgId);
             json.put("sender", myShortId);
             json.put("target", targetId);
-            json.put("body", CryptoUtils.encrypt(message));
+            String encryptedBody = CryptoUtils.encrypt(message);
+            json.put("body", encryptedBody != null ? encryptedBody : "");
 
             broadcastToNeighbors(json.toString(), null);
             addMessageToHistory(targetId, new Message(myShortId, message, true));
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating/sending message", e);
+        }
     }
 
     private void processReceivedData(String data, String fromEndpointId) {
@@ -316,25 +328,28 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             broadcastToNeighbors(data, fromEndpointId);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing received data", e);
+        }
     }
 
     private void addMessageToHistory(String nodeId, Message message) {
-        if (!chatHistory.containsKey(nodeId)) {
-            chatHistory.put(nodeId, new ArrayList<>());
-        }
         List<Message> history = chatHistory.get(nodeId);
-        if (history != null) {
-            history.add(message);
+        if (history == null) {
+            history = Collections.synchronizedList(new ArrayList<>());
+            chatHistory.put(nodeId, history);
         }
+        history.add(message);
         
+        final List<Message> finalHistory = new ArrayList<>(history);
         runOnUiThread(() -> {
-            // Check if current activity is ChatActivity
-            if (ChatActivity.isActive() && ChatActivity.getCurrentNodeId().equals(nodeId)) {
-                ChatActivity.getInstance().updateMessages(chatHistory.get(nodeId));
+            if (ChatActivity.isActive() && nodeId.equals(ChatActivity.getCurrentNodeId())) {
+                ChatActivity activity = ChatActivity.getInstance();
+                if (activity != null) {
+                    activity.updateMessages(finalHistory);
+                }
             }
             
-            // Still check fragments if any
             Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
             if (current instanceof ChatListFragment) {
                 ((ChatListFragment) current).updateConnectedNodes(getConnectedNodeNames());
@@ -343,8 +358,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void broadcastToNeighbors(String data, String excludeId) {
-        List<String> targets = new ArrayList<>(connectedEndpoints);
+        List<String> targets;
+        synchronized (connectedEndpoints) {
+            targets = new ArrayList<>(connectedEndpoints);
+        }
         if (excludeId != null) targets.remove(excludeId);
+        
         if (!targets.isEmpty()) {
             Nearby.getConnectionsClient(this).sendPayload(targets, Payload.fromBytes(data.getBytes(StandardCharsets.UTF_8)));
         }
@@ -364,7 +383,7 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
             if (current instanceof DiscoveryFragment) {
-                ((DiscoveryFragment) current).updateDiscoveredNodes(discoveredNodeNames);
+                ((DiscoveryFragment) current).updateDiscoveredNodes(getDiscoveredNodeNames());
             } else if (current instanceof ChatListFragment) {
                 ((ChatListFragment) current).updateConnectedNodes(getConnectedNodeNames());
             }

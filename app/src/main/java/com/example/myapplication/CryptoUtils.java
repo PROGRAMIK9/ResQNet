@@ -8,9 +8,8 @@ import java.nio.charset.StandardCharsets;
 
 public class CryptoUtils {
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
-    // Using a 32-byte key for AES-256. In a real app, this shouldn't be hardcoded.
     private static final String AES_KEY = "12345678901234567890123456789012"; 
-    private static final String AES_IV = "1234567890123456"; // 16 bytes for IV
+    private static final String AES_IV = "1234567890123456";
 
     public static String encrypt(String value) {
         try {
@@ -21,7 +20,7 @@ public class CryptoUtils {
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
 
             byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
-            return Base64.encodeToString(encrypted, Base64.DEFAULT);
+            return Base64.encodeToString(encrypted, Base64.NO_WRAP);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -36,7 +35,7 @@ public class CryptoUtils {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
 
-            byte[] original = cipher.doFinal(Base64.decode(encrypted, Base64.DEFAULT));
+            byte[] original = cipher.doFinal(Base64.decode(encrypted, Base64.NO_WRAP));
             return new String(original, StandardCharsets.UTF_8);
         } catch (Exception ex) {
             ex.printStackTrace();
