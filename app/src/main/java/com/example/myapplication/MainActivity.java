@@ -17,6 +17,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -56,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
     private final Map<String, String> endpointIdToNodeMap = new HashMap<>();
     private final Set<String> seenMessageIds = new HashSet<>();
     
-    // Store message history: NodeID -> List of Messages
     private final Map<String, List<Message>> chatHistory = new HashMap<>();
     private final List<String> discoveredNodeNames = new ArrayList<>();
 
@@ -69,7 +71,9 @@ public class MainActivity extends AppCompatActivity {
             permissions.add(Manifest.permission.BLUETOOTH_SCAN);
             permissions.add(Manifest.permission.BLUETOOTH_ADVERTISE);
             permissions.add(Manifest.permission.BLUETOOTH_CONNECT);
-            permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+            }
         } else {
             permissions.add(Manifest.permission.BLUETOOTH);
             permissions.add(Manifest.permission.BLUETOOTH_ADMIN);
@@ -82,6 +86,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        View mainView = findViewById(R.id.main);
+        if (mainView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                return WindowInsetsCompat.CONSUMED;
+            });
+        }
 
         String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         if (androidId == null) androidId = UUID.randomUUID().toString();
@@ -99,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
             
             if (selectedFragment != null) {
                 getSupportFragmentManager().beginTransaction()
+                        .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
                         .replace(R.id.fragment_container, selectedFragment)
                         .commit();
                 return true;
@@ -137,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void openIndividualChat(String nodeId) {
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right)
                 .replace(R.id.fragment_container, IndividualChatFragment.newInstance(nodeId))
                 .addToBackStack(null)
                 .commit();
@@ -166,9 +181,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void startNearby() {
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        boolean locationOn = lm.isProviderEnabled(LocationManager.GPS_PROVIDER) || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        boolean locationOn = (lm != null) && (lm.isProviderEnabled(LocationManager.GPS_PROVIDER) || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER));
         BluetoothManager bm = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        BluetoothAdapter adapter = bm.getAdapter();
+        BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : null;
         boolean bluetoothOn = (adapter != null && adapter.isEnabled());
 
         if (!locationOn || !bluetoothOn) {
@@ -291,7 +306,10 @@ public class MainActivity extends AppCompatActivity {
         if (!chatHistory.containsKey(nodeId)) {
             chatHistory.put(nodeId, new ArrayList<>());
         }
-        chatHistory.get(nodeId).add(message);
+        List<Message> history = chatHistory.get(nodeId);
+        if (history != null) {
+            history.add(message);
+        }
         
         runOnUiThread(() -> {
             Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);

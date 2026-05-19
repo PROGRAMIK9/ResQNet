@@ -1,49 +1,21 @@
 <resources>
-    <string name="app_name">My Application</string>
-    <string name="status_idle">Status: Idle</string>
-    <string name="status_initializing">Status: Initializing…</string>
-    <string name="status_active_discovering">Status: Active - discovering nearby nodes</string>
-    <string name="status_stopped">Status: Stopped</string>
-    <string name="node_id_placeholder">Node ID: ----</string>
-    <string name="node_id_label">Node: %1$s</string>
-    <string name="nearby_nodes_hint">Nearby nodes: tap one to copy it into Target Node ID</string>
-    <string name="no_nearby_nodes">No nearby nodes discovered yet.</string>
-    <string name="node_item_discovered">%1$s • discovered</string>
-    <string name="node_item_connected">%1$s • connected</string>
-    <string name="target_node_hint">Target Node ID (blank = broadcast to all connected nodes)</string>
-    <string name="message_hint">Message</string>
-    <string name="connect">Connect</string>
-    <string name="send">Send</string>
-    <string name="refresh_mesh_network">Refresh Mesh Network</string>
-    <string name="chat_log_header">--- Mesh Chat Log ---\n</string>
-    <string name="copied_node_id">Copied node ID: %1$s</string>
-    <string name="enter_target_node">Enter a target node ID or tap one from the list.</string>
-    <string name="this_is_current_node">This device is already your current node.</string>
-    <string name="node_not_discovered">Node not discovered yet: %1$s. Keep Nearby open and try again.</string>
-    <string name="no_connected_neighbors">No connected neighbors yet. Message was not sent.</string>
-    <string name="connecting_to_node">Connecting to %1$s…</string>
-    <string name="connecting_before_sending">Connecting to %1$s before sending…</string>
-    <string name="already_connected_to_node">Already connected to %1$s.</string>
-    <string name="connected_to_neighbor">Connected to neighbor: %1$s</string>
-    <string name="disconnected_from_neighbor">Disconnected from neighbor: %1$s</string>
-    <string name="discovered_nearby_node">Discovered nearby node: %1$s</string>
-    <string name="sent_queued_messages">Sent %1$d queued message(s) to %2$s.</string>
-    <string name="me_to_all">ME -> ALL: %1$s</string>
-    <string name="me_to_target">ME -> %1$s: %2$s</string>
-    <string name="relaying_message_for">Relaying message for %1$s…</string>
-    <string name="mesh_send_fallback">[ENCRYPTED DATA]</string>
-    <string name="permissions_required">Permissions needed for nearby mesh communication.</string>
-    <string name="starting_nearby">Starting nearby advertising and discovery…</string>
-    <string name="advertising_started">Advertising as: %1$s</string>
-    <string name="discovery_started">Discovery started.</string>
-    <string name="connection_initiated_by">Connection initiated by: %1$s</string>
-    <string name="connection_failed">Connection failed for %1$s (code: %2$s)</string>
-    <string name="connection_failed_reason">Connection request failed for %1$s: %2$s</string>
-    <string name="endpoint_lost">Endpoint lost: %1$s</string>
-    
+    <string name="app_name">MeshChat</string>
     <string name="nav_discovery">Discovery</string>
     <string name="nav_chats">Chats</string>
-    <string name="active_chats">Active Chats</string>
-    <string name="no_chats_yet">No connected nodes yet.\nGo to Discovery to find neighbors.</string>
+    <string name="status_idle">Status: Idle</string>
+    <string name="status_active">Status: Active</string>
+    <string name="status_searching">Scanning for nearby nodes…</string>
+    <string name="btn_discovery">Start Discovery</string>
+    <string name="btn_refresh">Refresh</string>
+    <string name="node_id_label">My Node ID: %1$s</string>
+    <string name="discovered_nodes_title">DISCOVERED NODES</string>
+    <string name="active_chats_title">Active Chats</string>
+    <string name="no_chats_message">No connected nodes yet.\nGo to Discovery to find neighbors.</string>
     <string name="type_message_hint">Type a message...</string>
+    <string name="chat_with">Chat with %1$s</string>
+    <string name="node_name_placeholder">Node ID</string>
+    <string name="node_status_tap_to_connect">Tap to connect</string>
+    
+    <!-- Legacy strings for logic compatibility if any -->
+    <string name="status_stopped">Status: Stopped</string>
 </resources>

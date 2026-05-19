@@ -2,4 +2,27 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- ResqNet Theme Palette -->
+    <color name="primary">#2EEB5B</color>
+    <color name="onPrimary">#003914</color>
+    <color name="primaryContainer">#005322</color>
+    <color name="onPrimaryContainer">#96FB9B</color>
+    
+    <color name="secondary">#00BFA5</color>
+    <color name="onSecondary">#FFFFFF</color>
+    <color name="secondaryContainer">#005045</color>
+    <color name="onSecondaryContainer">#72F8E0</color>
+    
+    <color name="background">#0C1D1D</color>
+    <color name="onBackground">#E1E3E1</color>
+    <color name="surface">#0C1D1E</color>
+    <color name="onSurface">#E1E3E1</color>
+    <color name="surfaceVariant">#3F4940</color>
+    <color name="onSurfaceVariant">#BFC9BC</color>
+    
+    <color name="sent_bubble">#004D40</color>
+    <color name="received_bubble">#1D3333</color>
+    <color name="status_active">#2EEB5B</color>
+    <color name="accent_orange">#F48C06</color>
 </resources>

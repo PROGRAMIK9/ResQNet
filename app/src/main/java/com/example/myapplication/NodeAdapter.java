@@ -32,6 +32,7 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         String nodeId = nodes.get(position);
         holder.nodeName.setText("Node " + nodeId);
+        // We can add logic here to differentiate discovery vs connected if needed
         holder.itemView.setOnClickListener(v -> listener.onNodeClick(nodeId));
     }
 
@@ -46,10 +47,11 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.ViewHolder> {
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView nodeName;
+        TextView nodeName, nodeStatus;
         ViewHolder(View itemView) {
             super(itemView);
             nodeName = itemView.findViewById(R.id.node_name);
+            nodeStatus = itemView.findViewById(R.id.node_status_text);
         }
     }
 }
