@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/status_idle"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/node_id_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/node_id_placeholder"
+        android:textColor="#555555" />
+
+    <TextView
+        android:id="@+id/discovered_nodes_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/nearby_nodes_hint"
+        android:textStyle="bold"
+        android:textColor="#444444" />
+
+    <ScrollView
+        android:id="@+id/discovered_nodes_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:layout_marginTop="4dp"
+        android:background="#F7F7F7">
+
+        <LinearLayout
+            android:id="@+id/discovered_nodes_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btn_connect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/connect" />
+
+        <Button
+            android:id="@+id/btn_refresh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+                android:text="@string/refresh_mesh_network" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#F0F0F0">
+
+        <TextView
+            android:id="@+id/chat_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="@string/chat_log_header" />
+    </ScrollView>
+
+    <EditText
+        android:id="@+id/edit_target_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/target_node_hint"
+        android:inputType="text"
+        android:importantForAutofill="no" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/edit_message"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/message_hint"
+            android:inputType="textShortMessage"
+            android:importantForAutofill="no" />
+
+        <Button
+            android:id="@+id/btn_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/send" />
+    </LinearLayout>
+
+
+</LinearLayout>
