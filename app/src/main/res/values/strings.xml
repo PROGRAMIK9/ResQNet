@@ -1,5 +1,6 @@
 <resources>
-    <string name="app_name">MeshChat</string>
+    <string name="app_name">ResQNet</string>
+    <string name="app_tagline">Communicate When Network Fails</string>
     <string name="nav_discovery">Discovery</string>
     <string name="nav_chats">Chats</string>
     <string name="status_idle">Status: Idle</string>
@@ -15,6 +16,7 @@
     <string name="chat_with">Chat with %1$s</string>
     <string name="node_name_placeholder">Node ID</string>
     <string name="node_status_tap_to_connect">Tap to connect</string>
+    <string name="nearby_mesh_label">Nearby ResQNet Nodes</string>
     
     <!-- Legacy strings for logic compatibility if any -->
     <string name="status_stopped">Status: Stopped</string>

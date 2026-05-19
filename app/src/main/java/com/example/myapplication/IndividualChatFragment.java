@@ -42,7 +42,8 @@ public class IndividualChatFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_individual_chat, container, false);
         
         MaterialToolbar toolbar = view.findViewById(R.id.toolbar);
-        toolbar.setTitle("Chat with " + targetNodeId);
+        // Use the string resource for branding consistency
+        toolbar.setTitle(getString(R.string.chat_with, targetNodeId));
         toolbar.setNavigationOnClickListener(v -> getParentFragmentManager().popBackStack());
 
         recyclerView = view.findViewById(R.id.recycler_messages);
