@@ -49,19 +49,14 @@
                 android:orientation="vertical"
                 android:padding="20dp">
 
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <TextView
+                <TextView
                         android:id="@+id/status_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/status_active"
                         android:textAppearance="?attr/textAppearanceTitleLarge"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorPrimary"/>
-
+                        android:textColor="?attr/colorPrimary"
+                        android:textStyle="bold" />
                     <TextView
                         android:id="@+id/node_id_text"
                         android:layout_width="wrap_content"
@@ -74,16 +69,6 @@
                         android:text="ID: ABCD"
                         android:textAppearance="?attr/textAppearanceLabelLarge"
                         android:textColor="?attr/colorOnPrimaryContainer" />
-                </RelativeLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/nearby_mesh_label"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

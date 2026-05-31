@@ -28,7 +28,7 @@ public class DiscoveryFragment extends Fragment {
         
         MainActivity activity = (MainActivity) getActivity();
         if (activity != null) {
-            nodeIdText.setText(getString(R.string.node_id_label, activity.getMyShortId()));
+            nodeIdText.setText(getString(R.string.node_id_label, activity.getUserName()+activity.getMyShortId()));
             statusText.setText(activity.getStatus());
             discoveredNodes = activity.getDiscoveredNodeNames();
         }

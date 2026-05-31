@@ -60,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String SERVICE_ID = "com.example.myapplication";
     private static final Strategy STRATEGY = Strategy.P2P_CLUSTER;
     private static final int MAX_SEEN_MESSAGE_IDS = 5000;
+    public static final String PREFS_NAME = "ResQNetPrefs";
+    public static final String KEY_USERNAME = "username";
 
     private static MainActivity instance;
 
@@ -76,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long INITIAL_RETRY_DELAY_MS = 1000L; // 1s
     
     private final Map<String, List<Message>> chatHistory = new ConcurrentHashMap<>();
+    private final Map<String, String> nodeIdToDisplayName = new ConcurrentHashMap<>();
     private final List<String> discoveredNodeNames = Collections.synchronizedList(new ArrayList<>());
 
     private final String[] REQUIRED_PERMISSIONS;
@@ -163,6 +166,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String getMyShortId() { return myShortId; }
+
+    public String getUserName() {
+        return getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_USERNAME, "User");
+    }
+
+    public String getDisplayName() {
+        return getUserName() + " (" + myShortId + ")";
+    }
+
     public String getStatus() { return currentStatus; }
 
     public List<String> getDiscoveredNodeNames() {
@@ -220,19 +232,35 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    public List<Message> getMessagesForNode(String nodeId) {
-        List<Message> history = chatHistory.get(nodeId);
+    public List<Message> getMessagesForNode(String nodeIdOrName) {
+        String id = extractId(nodeIdOrName);
+        List<Message> history = chatHistory.get(id);
         if (history == null) return new ArrayList<>();
         synchronized (history) {
             return new ArrayList<>(history);
         }
     }
 
-    public void openIndividualChat(String nodeId) {
+    public void openIndividualChat(String nodeIdOrName) {
         Intent intent = new Intent(this, ChatActivity.class);
-        intent.putExtra("node_id", nodeId);
+        intent.putExtra("node_id", nodeIdOrName);
         startActivity(intent);
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+    }
+
+    public String getDisplayNameForNode(String nodeId) {
+        String name = nodeIdToDisplayName.get(nodeId);
+        return name != null ? name : nodeId;
+    }
+
+    private String extractId(String nameOrId) {
+        if (nameOrId == null || nameOrId.isEmpty()) return nameOrId;
+        int lastParen = nameOrId.lastIndexOf('(');
+        int endParen = nameOrId.lastIndexOf(')');
+        if (lastParen != -1 && endParen > lastParen) {
+            return nameOrId.substring(lastParen + 1, endParen);
+        }
+        return nameOrId;
     }
 
     private boolean hasPermissions() {
@@ -288,9 +316,10 @@ public class MainActivity extends AppCompatActivity {
         Nearby.getConnectionsClient(this).stopAdvertising();
         Nearby.getConnectionsClient(this).stopDiscovery();
 
+        String displayName = getDisplayName();
         AdvertisingOptions advOptions = new AdvertisingOptions.Builder().setStrategy(STRATEGY).build();
-        Nearby.getConnectionsClient(this).startAdvertising(myShortId, SERVICE_ID, connectionLifecycleCallback, advOptions)
-                .addOnSuccessListener(unused -> updateStatus("Active (" + myShortId + ")"))
+        Nearby.getConnectionsClient(this).startAdvertising(displayName, SERVICE_ID, connectionLifecycleCallback, advOptions)
+                .addOnSuccessListener(unused -> updateStatus("Active"))
                 .addOnFailureListener(e -> {
                     String details = getNearbyFailureDetails(e);
                     Log.e(TAG, "Advertising failed: " + details, e);
@@ -331,7 +360,11 @@ public class MainActivity extends AppCompatActivity {
     private final ConnectionLifecycleCallback connectionLifecycleCallback = new ConnectionLifecycleCallback() {
         @Override
         public void onConnectionInitiated(@NonNull String endpointId, @NonNull ConnectionInfo info) {
-            endpointIdToNodeMap.put(endpointId, info.getEndpointName());
+            String remoteName = info.getEndpointName();
+            endpointIdToNodeMap.put(endpointId, remoteName);
+            if (remoteName != null) {
+                nodeIdToDisplayName.put(extractId(remoteName), remoteName);
+            }
             // If we had a pending request for this endpoint, clear it
             pendingConnectionRequests.remove(endpointId);
             Nearby.getConnectionsClient(MainActivity.this).acceptConnection(endpointId, payloadCallback);
@@ -373,7 +406,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // Ignore endpoints that advertise our own name
-            if (remoteName != null && remoteName.equalsIgnoreCase(myShortId)) {
+            if (remoteName != null && remoteName.equalsIgnoreCase(getDisplayName())) {
                 Log.d(TAG, "Ignoring discovered endpoint that matches our own name: " + endpointId);
                 return;
             }
@@ -390,7 +423,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             pendingConnectionRequests.add(endpointId);
-            Nearby.getConnectionsClient(MainActivity.this).requestConnection(myShortId, endpointId, connectionLifecycleCallback)
+            Nearby.getConnectionsClient(MainActivity.this).requestConnection(getDisplayName(), endpointId, connectionLifecycleCallback)
                     .addOnSuccessListener(unused -> {
                         Log.d(TAG, "Connection request sent to " + endpointId);
                     })
@@ -407,7 +440,7 @@ public class MainActivity extends AppCompatActivity {
                                 // ensure we don't duplicate pending requests
                                 if (!connectedEndpoints.contains(endpointId) && !pendingConnectionRequests.contains(endpointId)) {
                                     pendingConnectionRequests.add(endpointId);
-                                    Nearby.getConnectionsClient(MainActivity.this).requestConnection(myShortId, endpointId, connectionLifecycleCallback)
+                                    Nearby.getConnectionsClient(MainActivity.this).requestConnection(getDisplayName(), endpointId, connectionLifecycleCallback)
                                             .addOnSuccessListener(u -> Log.d(TAG, "Retry connection request sent to " + endpointId))
                                             .addOnFailureListener(err -> {
                                                 Log.e(TAG, "Retry failed for " + endpointId, err);
@@ -452,7 +485,7 @@ public class MainActivity extends AppCompatActivity {
         public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate update) {}
     };
 
-    public void sendMeshMessage(String targetId, String message) {
+    public void sendMeshMessage(String targetIdOrName, String message) {
         if (connectedEndpoints.isEmpty()) {
             Toast.makeText(this, "No connected nodes!", Toast.LENGTH_SHORT).show();
             return;
@@ -461,9 +494,11 @@ public class MainActivity extends AppCompatActivity {
             String msgId = UUID.randomUUID().toString();
             markMessageSeen(msgId);
             
+            String targetId = extractId(targetIdOrName);
+            String display = getDisplayName();
             JSONObject json = new JSONObject();
             json.put("msgId", msgId);
-            json.put("sender", myShortId);
+            json.put("sender",display );
             json.put("target", targetId);
             String encryptedBody = CryptoUtils.encrypt(message);
             if (encryptedBody == null) {
@@ -493,6 +528,7 @@ public class MainActivity extends AppCompatActivity {
             if (target.equals("ALL") || target.equalsIgnoreCase(myShortId)) {
                 String clearText = CryptoUtils.decrypt(body);
                 if (clearText != null) {
+
                     addMessageToHistory(sender, new Message(sender, clearText, false));
                 }
             }
@@ -502,7 +538,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void addMessageToHistory(String nodeId, Message message) {
+    private void addMessageToHistory(String nodeIdOrName, Message message) {
+        String nodeId = extractId(nodeIdOrName);
         List<Message> history = chatHistory.computeIfAbsent(nodeId, key -> Collections.synchronizedList(new ArrayList<>()));
         history.add(message);
         
@@ -512,7 +549,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         runOnUiThread(() -> {
-            if (ChatActivity.isActive() && nodeId.equalsIgnoreCase(ChatActivity.getCurrentNodeId())) {
+            String currentChatNodeId = extractId(ChatActivity.getCurrentNodeId());
+            if (ChatActivity.isActive() && nodeId.equalsIgnoreCase(currentChatNodeId)) {
                 ChatActivity activity = ChatActivity.getInstance();
                 if (activity != null) {
                     activity.updateMessages(historySnapshot);
