@@ -129,6 +129,8 @@ public class MainActivity extends AppCompatActivity {
                 selectedFragment = new DiscoveryFragment();
             } else if (id == R.id.nav_chats) {
                 selectedFragment = new ChatListFragment();
+            } else if (id == R.id.nav_settings) {
+                selectedFragment = new SettingsFragment();
             }
             
             if (selectedFragment != null) {
